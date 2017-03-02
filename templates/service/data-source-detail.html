@@ -1,0 +1,117 @@
+{% extends 'main.html' %}
+
+{% block head %}
+
+    <!-- Bootstrap -->
+    <link href="{{ static_url('./vendors/bootstrap/dist/css/bootstrap.min.css') }}" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="{{ static_url('./vendors/font-awesome/css/font-awesome.min.css') }}" rel="stylesheet">
+    <!-- NProgress -->
+    <link href="{{ static_url('./vendors/nprogress/nprogress.css') }}" rel="stylesheet">
+
+    <!-- Custom Theme Style -->
+    <link href="{{ static_url('./build/css/custom.min.css') }}" rel="stylesheet">
+
+{% endblock %}
+
+
+{% block inner_content%}
+
+    <div class="x_title">
+      <div class="clearfix"></div>
+    </div>
+    <div class="x_content">
+      <!-- DataTables -->
+      <table id="datatable" class="table table-striped table-bordered">
+        {% if object and object.status == 'ready' %}
+            {% with predictor_detail_list = sorted_list, predictor_ids = object.predictor_ids %}
+                {% include 'service/data-source-detail-list.html' %}
+            {% endwith %}
+        {% else %}
+            <p class="text-muted font-13 m-b-30">
+                Dataset is not ready yet
+            </p>
+        {% endif %}
+      </table>
+
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
+
+    <!-- jQuery -->
+    <script src="{{ static_url('./vendors/jquery/dist/jquery.min.js') }}"></script>
+    <!-- Bootstrap -->
+    <script src="{{ static_url('./vendors/bootstrap/dist/js/bootstrap.min.js') }}"></script>
+    <!-- FastClick -->
+    <script src="{{ static_url('./vendors/fastclick/lib/fastclick.js') }}"></script>
+    <!-- NProgress -->
+    <script src="{{ static_url('./vendors/nprogress/nprogress.js') }}"></script>
+
+    <!-- Custom Theme Scripts -->
+    <script src="{{ static_url('./build/js/custom.min.js') }}"></script>
+
+     <!-- Datatables -->
+    <script src="{{ static_url('./vendors/datatables.net/js/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-bs/js/dataTables.bootstrap.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-buttons/js/dataTables.buttons.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-buttons-bs/js/buttons.bootstrap.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-buttons/js/buttons.flash.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-buttons/js/buttons.html5.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-buttons/js/buttons.print.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-fixedheader/js/dataTables.fixedHeader.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-keytable/js/dataTables.keyTable.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-responsive/js/dataTables.responsive.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-responsive-bs/js/responsive.bootstrap.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-scroller/js/datatables.scroller.min.js') }}"></script>
+
+    <script>
+
+        var updateCharts = function(id, labels, data){
+
+            if (labels.length == 0 || data.length == 0) {
+                return;
+            }
+
+            var ctx = document.getElementById(id);
+            var barchart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                  labels: JSON.parse(labels.replace(/'/g, '"')),
+                  datasets: [{
+                    label: 'Frequency',
+                    backgroundColor: '#26B99A',
+                    data: JSON.parse('[' + data + ']')
+                  }]
+                },
+                options: {
+                  scales: {
+                    yAxes: [{
+                      ticks: {
+                        beginAtZero: true
+                      }
+                    }]
+                  }
+                }
+            });
+        };
+
+        Chart.defaults.global.legend = {
+            enabled: false
+        };
+        $('#datatable').on('init.dt', function(){
+        }).on('draw.dt', function(){
+            $('canvas').each(function(){
+                if ($(this).data('rendered') != undefined) {
+                    return;
+                }
+                updateCharts($(this).attr('id'), $(this).data('labels'), $(this).data('list'));
+                $(this).data('rendered', true);
+            });
+        }).dataTable({
+            bLengthChange: false
+        });
+    </script>
+
+{% endblock %}

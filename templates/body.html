@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block body %}
+
+    <body class="nav-md">
+    <div class="container body">
+      <div class="main_container">
+
+        <!-- left side bar -->
+        {% block side_bar %}{% endblock %}
+        <!-- /left side bar -->
+
+        <!-- top navigation -->
+        {% block top_navigation %}{% endblock %}
+        <!-- /top navigation -->
+
+        <!-- page content -->
+        {% block content %}{% endblock %}
+        <!-- /page content -->
+
+        <!-- footer content -->
+        {% block footer_content %}{% endblock %}
+        <!-- /footer content -->
+
+      </div>
+    </div>
+
+    {% block scripts %}{% endblock %}
+
+</body>
+
+{% endblock %}

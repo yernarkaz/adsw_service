@@ -1,0 +1,25 @@
+#!/bin/bash
+
+sudo apt-get update
+
+wget -P /tmp http://nginx.org/download/nginx-1.6.2.tar.gz
+tar -zxvf /tmp/nginx-1.6.2.tar.gz -C /tmp
+
+wget -P /tmp https://github.com/vkholodkov/nginx-upload-module/archive/2.2.0.tar.gz
+tar -zxvf /tmp/2.2.0.tar.gz -C /tmp
+
+cd /tmp/nginx-1.6.2
+
+./configure --add-module=/tmp/nginx-upload-module-2.2.0
+make
+make install
+
+sudo ufw app list
+sudo ufw allow 'Nginx HTTP'
+
+sudo ufw status
+systemctl status nginx
+
+sudo apt-get install memcached
+sudo apt-get install mongodb
+sudo apt-get install 

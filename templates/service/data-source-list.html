@@ -1,0 +1,33 @@
+<thead>
+    <tr>
+      <th>Name</th>
+      <th>Samples count</th>
+      <th>Predictors count</th>
+      <th>Nominal predictors count</th>
+      <th>Numeric predictors count</th>
+      <th>Missing values</th>
+    </tr>
+</thead>
+ <tbody>
+    {% for obj in object_list %}
+        <tr>
+          <td>
+            <a href="{{ reverse_url('datasource-detail', obj._id) }}">
+                {{ obj.file_name }}
+            </a>
+            {% if obj.status == 'new' %}
+                <span class="label label-default">New</span>
+            {% elif obj.status == 'check' %}
+                <span class="label label-info">Checking...</span>
+            {% else %}
+                <span class="label label-success">Ready</span>
+            {% endif %}
+          </td>
+          <td>{{ obj.samples_count if obj.samples_count else '-' }}</td>
+          <td>{{ obj.predictors_count if obj.predictors_count else '-' }}</td>
+          <td>{{ obj.nominal_predictors_count if obj.nominal_predictors_count else '-' }}</td>
+          <td>{{ obj.numeric_predictors_count if obj.numeric_predictors_count else '-' }}</td>
+          <td>{{ '%0.2f'| format(obj.missing_values|float) }} %</td>
+        </tr>
+    {% endfor %}
+</tbody>

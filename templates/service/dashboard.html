@@ -1,0 +1,62 @@
+{% extends 'main.html' %}
+
+{% block head %}
+
+    <!-- Bootstrap -->
+    <link href="{{ static_url('./vendors/bootstrap/dist/css/bootstrap.min.css') }}" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="{{ static_url('./vendors/font-awesome/css/font-awesome.min.css') }}" rel="stylesheet">
+    <!-- NProgress -->
+    <link href="{{ static_url('./vendors/nprogress/nprogress.css') }}" rel="stylesheet">
+    <!-- Animate.css -->
+    <link href="{{ static_url('./vendors/animate.css/animate.min.css') }}" rel="stylesheet">
+
+    <!-- Custom Theme Style -->
+    <link href="{{ static_url('./build/css/custom.min.css') }}" rel="stylesheet">
+
+{% endblock %}
+
+
+{% block inner_content %}
+    <div class="row tile_count">
+        <div class="col-md-2 col-sm-4 col-xs-5 tile_stats_count">
+          <span class="count_top"><i class="fa fa-database"></i> Total Data Sources</span>
+          <div class="count">{{ datasources_count }} <span class="count_bottom">uploaded</span></div>
+        </div>
+        <div class="col-md-3 col-sm-4 col-xs-5 tile_stats_count">
+          <span class="count_top"><i class="fa fa-tasks"></i> Total Workflows</span>
+          <div class="count">{{ workflows_count }}
+              <span class="count_bottom"> completed,</span>
+              <span class="count_bottom">
+                <i class="green">{{ workflows_processing_count }}</i> processing,
+                <i class="red">{{ workflows_new_count }}</i> idle
+              </span>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-4 col-xs-5 tile_stats_count">
+          <span class="count_top"><i class="fa fa-gear"></i> Total Supervised trained models</span>
+          <div class="count">0 <span class="count_bottom"> avg time, 0s</span></div>
+        </div>
+        <div class="col-md-3 col-sm-4 col-xs-5 tile_stats_count">
+          <span class="count_top"><i class="fa fa-gear"></i> Total Unsupervised trained models</span>
+          <div class="count">0 <span class="count_bottom"> avg time, 0s</span></div>
+        </div>
+      </div>
+
+{% endblock %}
+
+{% block scripts %}
+
+    <!-- jQuery -->
+    <script src="{{ static_url('./vendors/jquery/dist/jquery.min.js') }}"></script>
+    <!-- Bootstrap -->
+    <script src="{{ static_url('./vendors/bootstrap/dist/js/bootstrap.min.js') }}"></script>
+    <!-- FastClick -->
+    <script src="{{ static_url('./vendors/fastclick/lib/fastclick.js') }}"></script>
+    <!-- NProgress -->
+    <script src="{{ static_url('./vendors/nprogress/nprogress.js') }}"></script>
+
+    <!-- Custom Theme Scripts -->
+    <script src="{{ static_url('./build/js/custom.min.js') }}"></script>
+
+{% endblock %}

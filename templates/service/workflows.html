@@ -1,0 +1,56 @@
+{% extends 'main.html' %}
+
+{% block head %}
+
+    <!-- Bootstrap -->
+    <link href="{{ static_url('./vendors/bootstrap/dist/css/bootstrap.min.css') }}" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="{{ static_url('./vendors/font-awesome/css/font-awesome.min.css') }}" rel="stylesheet">
+    <!-- NProgress -->
+    <link href="{{ static_url('./vendors/nprogress/nprogress.css') }}" rel="stylesheet">
+    <!-- Animate.css -->
+    <link href="{{ static_url('./vendors/animate.css/animate.min.css') }}" rel="stylesheet">
+
+    <!-- Custom Theme Style -->
+    <link href="{{ static_url('./build/css/custom.min.css') }}" rel="stylesheet">
+
+{% endblock %}
+
+
+{% block inner_content %}
+    <div class="x_title">
+      <a class="btn btn-primary" href="{{ reverse_url('workflow-new-step1') }}">
+          New workflow</a>
+      <div class="clearfix"></div>
+    </div>
+    <div class="x_content">
+    <div class="list-group">
+        {% if object_list %}
+            {% for object in object_list %}
+              <a href="{{ reverse_url('workflow-detail', object._id) }}" class="list-group-item">
+                  workflow item : {{ object._id }}
+              </a>
+            {% endfor %}
+        {% else %}
+            <span>You haven't created any workflow yet</span><br />
+        {% endif %}
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
+
+    <!-- jQuery -->
+    <script src="{{ static_url('./vendors/jquery/dist/jquery.min.js') }}"></script>
+    <!-- Bootstrap -->
+    <script src="{{ static_url('./vendors/bootstrap/dist/js/bootstrap.min.js') }}"></script>
+    <!-- FastClick -->
+    <script src="{{ static_url('./vendors/fastclick/lib/fastclick.js') }}"></script>
+    <!-- NProgress -->
+    <script src="{{ static_url('./vendors/nprogress/nprogress.js') }}"></script>
+
+    <!-- Custom Theme Scripts -->
+    <script src="{{ static_url('./build/js/custom.min.js') }}"></script>
+
+{% endblock %}

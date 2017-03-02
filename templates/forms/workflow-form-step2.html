@@ -1,0 +1,53 @@
+{% extends 'forms/workflow-base-form.html' %}
+{% block wizard_content %}
+
+    <div id="step-2">
+          <div class="x_title">
+            <h2>Setup preprocessing</h2>
+            <div class="clearfix"></div>
+          </div>
+          <div class="x_content">
+             <div class="form-group" id="form-group-preprocessing">
+                <label class="col-md-3 col-sm-3 col-xs-12 control-label"></label>
+                <div class="col-md-9 col-sm-9 col-xs-12">
+                  <div class="checkbox">
+                    <label>
+                      <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-prep="discrete"
+                      {{ 'checked' if 'discrete' in workflow.preprocessing else '' }}>
+                      Discretize continuous features
+                    </label>
+                  </div>
+                  <div class="checkbox">
+                    <label>
+                      <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-prep="miss_val"
+                      {{ 'checked' if 'miss_val' in workflow.preprocessing else '' }}>
+                      Handle missing values
+                    </label>
+                  </div>
+                  <div class="checkbox">
+                    <label>
+                      <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-prep="onehot"
+                      {{ 'checked' if 'onehot' in workflow.preprocessing else '' }}>
+                      Use one hot encoding for nominal(categorical) features
+                    </label>
+                  </div>
+                  <div class="checkbox">
+                    <label class="">
+                      <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-prep="fi"
+                      {{ 'checked' if 'fi' in workflow.preprocessing else '' }}>
+                      Use feature interactions and selection
+                    </label>
+                  </div>
+                  <div class="checkbox">
+                    <label class="">
+                      <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-prep="od"
+                      {{ 'checked' if 'od' in workflow.preprocessing else '' }}>
+                      Use outlier detection
+                    </label>
+                  </div>
+                </div>
+              </div>
+          </div>
+      </div>
+
+{% endblock %}

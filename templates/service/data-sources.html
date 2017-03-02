@@ -1,0 +1,162 @@
+{% extends 'main.html' %}
+
+{% block head %}
+
+    <!-- Bootstrap -->
+    <link href="{{ static_url('./vendors/bootstrap/dist/css/bootstrap.min.css') }}" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="{{ static_url('./vendors/font-awesome/css/font-awesome.min.css') }}" rel="stylesheet">
+    <!-- NProgress -->
+    <link href="{{ static_url('./vendors/nprogress/nprogress.css') }}" rel="stylesheet">
+    <!-- Animate.css -->
+    <link href="{{ static_url('./vendors/animate.css/animate.min.css') }}" rel="stylesheet">
+
+    <!-- Custom Theme Style -->
+    <link href="{{ static_url('./build/css/custom.min.css') }}" rel="stylesheet">
+
+{% endblock %}
+
+
+{% block inner_content %}
+    <div class="x_title">
+      <button type="button" class="btn btn-primary" data-toggle="modal" data-target=".bs-example-modal-lg">
+          Upload dataset</button>
+      <div class="clearfix"></div>
+    </div>
+
+    <div class="x_content">
+      <!-- modals -->
+      <!-- Large modal -->
+      <div class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" aria-hidden="true" id="modal-form">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">×</span>
+              </button>
+              <h4 class="modal-title" id="myModalLabel">Upload dataset</h4>
+            </div>
+            <div class="modal-body">
+                <form action="{{ reverse_url('datasource-upload') }}" method="post" enctype="multipart/form-data">
+                    <input type="file" name="data[]" multiple=""><br>
+                </form>
+                <div class="progress" id="bar">
+                    <div class="progress-bar progress-bar-success" id="percent"
+                         data-transitiongoal="95" aria-valuenow="95" style="width: 0%;"></div>
+                </div>
+                <div id="status"></div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-default" data-dismiss="modal" id="close-button">Close</button>
+              <button type="button" class="btn btn-primary" id="upload-button">Upload</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+      <!-- /modals -->
+
+      <!-- DataTables -->
+      <table id="datatable" class="table table-striped table-bordered">
+        {% if object_list %}
+            {% include 'service/data-source-list.html' %}
+        {% else %}
+            <p class="text-muted font-13 m-b-30">
+                You haven't uploaded any dataset yet
+            </p>
+        {% endif %}
+      </table>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+
+    <!-- jQuery -->
+    <script src="{{ static_url('./vendors/jquery/dist/jquery.min.js') }}"></script>
+    <!-- jQuery form -->
+    <script src="{{ static_url('./vendors/jquery.form/index.js') }}"></script>
+    <!-- jQuery blockUI -->
+    <script src="{{ static_url('./vendors/blockUI/jquery.blockUI.js') }}"></script>
+    <!-- Bootstrap -->
+    <script src="{{ static_url('./vendors/bootstrap/dist/js/bootstrap.min.js') }}"></script>
+    <!-- FastClick -->
+    <script src="{{ static_url('./vendors/fastclick/lib/fastclick.js') }}"></script>
+    <!-- NProgress -->
+    <script src="{{ static_url('./vendors/nprogress/nprogress.js') }}"></script>
+
+    <!-- Custom Theme Scripts -->
+    <script src="{{ static_url('./build/js/custom.min.js') }}"></script>
+
+    <!-- Datatables -->
+    <script src="{{ static_url('./vendors/datatables.net/js/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-bs/js/dataTables.bootstrap.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-buttons/js/dataTables.buttons.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-buttons-bs/js/buttons.bootstrap.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-buttons/js/buttons.flash.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-buttons/js/buttons.html5.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-buttons/js/buttons.print.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-fixedheader/js/dataTables.fixedHeader.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-keytable/js/dataTables.keyTable.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-responsive/js/dataTables.responsive.min.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-responsive-bs/js/responsive.bootstrap.js') }}"></script>
+    <script src="{{ static_url('./vendors/datatables.net-scroller/js/datatables.scroller.min.js') }}"></script>
+
+    <script>
+        (function() {
+
+            var percent = $('#percent');
+            var form = $('form');
+            var modal_form = $('#modal-form')
+
+            form.ajaxForm({
+                beforeSend: function() {
+                    var percentVal = '0%';
+                    percent.show()
+                    percent.width(percentVal)
+                    percent.html(percentVal);
+
+                    modal_form.block();
+                },
+                uploadProgress: function(event, position, total, percentComplete) {
+                    var percentVal = percentComplete + '%';
+                    percent.width(percentVal)
+                    percent.html(percentVal);
+                },
+                success: function(response) {
+
+                    var percentVal = '100%';
+                    percent.width(percentVal).html(percentVal);
+                    $('#close-button').click();
+
+                    $.ajax({
+                      url: '{{ reverse_url('datasource-check') }}',
+                      method: 'POST',
+                      data: {'obj_id' : response.obj_id},
+                      dataType: 'json'
+                    }).done(function(response){
+                        $('#datatable').html(response.html).dataTable();
+                        $('#datatable');
+                    });
+
+                    $('#datatable').html(response.html).dataTable();
+                },
+                complete: function(xhr) {
+                    percent.hide()
+                    var percentVal = '0%';
+                    percent.width(percentVal).html(percentVal);
+                    form.find('input').val('');
+                    modal_form.unblock();
+                }
+            });
+
+            $('#upload-button').on('click', function(e){
+               e.preventDefault();
+                form.submit();
+            });
+
+            $('#datatable').dataTable();
+
+        })();
+    </script>
+
+{% endblock %}

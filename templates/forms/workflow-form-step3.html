@@ -1,0 +1,193 @@
+{% extends 'forms/workflow-base-form.html' %}
+{% block wizard_content %}
+
+    <div id="step-3">
+      <div class="x_title">
+        <h2>Setup model</h2>
+        <div class="clearfix"></div>
+      </div>
+      <div class="x_content">
+        <div id="learning_type" class="btn-group" data-toggle="buttons">
+            <label class="btn btn-default {{ 'active' if workflow.model_processing.type == 'supervised' else '' }}"
+                   data-toggle-class="btn-primary" data-toggle-passive-class="btn-default">
+                <input type="radio" name="learning_type" value="supervised"> Supervised
+            </label>
+            <label class="btn btn-default {{ 'active' if workflow.model_processing.type == 'unsupervised' else '' }}"
+                   data-toggle-class="btn-primary" data-toggle-passive-class="btn-default">
+                <input type="radio" name="learning_type" value="unsupervised"> Unsupervised
+            </label>
+        </div>
+        <div class="form-group" id="form-group-supervised">
+            <label class="col-md-3 col-sm-3 col-xs-12 control-label">
+                Supervised learning models
+            </label>
+            <div class="col-md-9 col-sm-9 col-xs-12">
+{#              <div class="checkbox">#}
+{#                <label>#}
+{#                  <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-model="rlist"#}
+{#                  {{ 'disabled' if workflow.model_processing.type == 'unsupervised' else '' }}#}
+{#                  {{ 'checked' if 'rlist' in workflow.model_processing.models else '' }}>#}
+{#                  Bayesian Rule List classifier#}
+{#                </label>#}
+{#              </div>#}
+              <div class="checkbox">
+                <label>
+                  <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-model="xgb"
+                  {{ 'disabled' if workflow.model_processing.type == 'unsupervised' else '' }}
+                  {{ 'checked' if 'xgb' in workflow.model_processing.models else '' }}>
+                  Extreme gradient boost
+                </label>
+              </div>
+{#              <div class="checkbox">#}
+{#                <label>#}
+{#                  <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-model="frlp"#}
+{#                  {{ 'disabled' if workflow.model_processing.type == 'unsupervised' else '' }}#}
+{#                  {{ 'checked' if 'frlp' in workflow.model_processing.models else '' }}>#}
+{#                  Follow the Regularized Leader - Proximal#}
+{#                </label>#}
+{#              </div>#}
+              <div class="checkbox">
+                <label class="">
+                  <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-model="knn"
+                  {{ 'disabled' if workflow.model_processing.type == 'unsupervised' else '' }}
+                  {{ 'checked' if 'knn' in workflow.model_processing.models else '' }}>
+                  K-nearest neighbors
+                </label>
+              </div>
+              <div class="checkbox">
+                <label class="">
+                  <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-model="lr"
+                  {{ 'disabled' if workflow.model_processing.type == 'unsupervised' else '' }}
+                  {{ 'checked' if 'lr' in workflow.model_processing.models else '' }}>
+                  Logistic regression
+                </label>
+              </div>
+              <div class="checkbox">
+                <label>
+                  <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-model="nn"
+                  {{ 'disabled' if workflow.model_processing.type == 'unsupervised' else '' }}
+                  {{ 'checked' if 'nn' in workflow.model_processing.models else '' }}>
+                  Neural network
+                </label>
+              </div>
+              <div class="checkbox">
+                <label>
+                  <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-model="rf"
+                  {{ 'disabled' if workflow.model_processing.type == 'unsupervised' else '' }}
+                  {{ 'checked' if 'rf' in workflow.model_processing.models else '' }}>
+                  Random forest
+                </label>
+              </div>
+              <select class="select2_single form-control" tabindex="-1" id="select-options-class"
+              {{ 'disabled' if workflow.model_processing.type == 'unsupervised' else '' }}>
+                <option>select predictor class</option>
+                {% for obj in predictor_list %}
+                    <option value="{{ obj }}"
+                    {{ 'selected="selected"' if obj == predictor_target_name else '' }}>
+                        {{ obj }}
+                    </option>
+                {% endfor %}
+              </select>
+            </div>
+        </div>
+        <div class="form-group disabled" id="form-group-ensemble">
+            <label class="col-md-3 col-sm-3 col-xs-12 control-label">
+                Ensembling and stacking
+            </label>
+            <div class="col-md-9 col-sm-9 col-xs-12">
+              <div class="checkbox">
+                <label class="">
+                  <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-model="gm">
+{#                  {{ 'disabled' if workflow.model_processing.type == 'supervised' else '' }}#}
+{#                  {{ 'checked' if 'gb' in workflow.model_processing.models else '' }}>#}
+                  Use ensemble average
+                </label>
+              </div>
+              <div class="checkbox">
+                <label class="">
+                  <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-model="kmean">
+{#                  {{ 'disabled' if workflow.model_processing.type == 'supervised' else '' }}#}
+{#                  {{ 'checked' if 'kmean' in workflow.model_processing.models else '' }}>#}
+                  Use stack of probabilities
+                </label>
+              </div>
+        </div>
+        <div class="form-group" id="form-group-validation">
+            <label class="col-md-3 col-sm-3 col-xs-12 control-label">
+                Validation step
+            </label>
+            <div class="col-md-9 col-sm-9 col-xs-12">
+                <select class="select2_single form-control" tabindex="-1" id="select-options-validation"
+                {{ 'disabled' if workflow.model_processing.type == 'unsupervised' else '' }}>>
+                    <option>select validation type or test dataset</option>
+                    <option value="fold_3"
+                    {{ 'selected="selected"' if workflow.validation.value == '3' else '' }}>
+                        3-fold</option>
+                    <option value="fold_5"
+                    {{ 'selected="selected"' if workflow.validation.value == '5' else '' }}>
+                        5-fold</option>
+                    <option value="fold_10"
+                    {{ 'selected="selected"' if workflow.validation.value == '10' else '' }}>
+                        10-fold</option>
+                    {% for obj in object_list %}
+                        <option value="file_{{ obj._id }}"
+                        {{ 'selected="selected"' if obj._id == workflow.validation.value else '' }}>
+                            {{ obj.file_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form-group disabled" id="form-group-unsupervised">
+            <label class="col-md-3 col-sm-3 col-xs-12 control-label">
+                Unsupervised Learning models
+            </label>
+            <div class="col-md-9 col-sm-9 col-xs-12">
+              <div class="checkbox">
+                <label class="">
+                  <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-model="gm"
+                  {{ 'disabled' if workflow.model_processing.type == 'supervised' else '' }}
+                  {{ 'checked' if 'gm' in workflow.model_processing.models else '' }}>
+                  Gaussian mixture
+                </label>
+              </div>
+              <div class="checkbox">
+                <label class="">
+                  <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-model="kmean"
+                  {{ 'disabled' if workflow.model_processing.type == 'supervised' else '' }}
+                  {{ 'checked' if 'kmean' in workflow.model_processing.models else '' }}>
+                  K-means clustering
+                </label>
+              </div>
+              <div class="checkbox">
+                <label>
+                  <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-model="dbscan"
+                  {{ 'disabled' if workflow.model_processing.type == 'supervised' else '' }}
+                  {{ 'checked' if 'dbscan' in workflow.model_processing.models else '' }}>
+                  DBSCAN
+                </label>
+              </div>
+              <div class="checkbox">
+                <label>
+                  <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-model="pca"
+                  {{ 'disabled' if workflow.model_processing.type == 'supervised' else '' }}
+                  {{ 'checked' if 'pca' in workflow.model_processing.models else '' }}>
+                  PCA
+                </label>
+              </div>
+              <div class="checkbox">
+                <label>
+                  <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-model="rbm"
+                  {{ 'disabled' if workflow.model_processing.type == 'supervised' else '' }}
+                  {{ 'checked' if 'rbm' in workflow.model_processing.models else '' }}>
+                  Restricted Boltzmann machines
+                </label>
+              </div>
+            </div>
+        </div>
+        <div class="clearfix"></div>
+      </div>
+    </div>
+</div>
+
+{% endblock %}

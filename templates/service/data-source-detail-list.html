@@ -1,0 +1,40 @@
+<thead>
+    <tr>
+      <th>Use predictor</th>
+      <th>Predictor name</th>
+      <th>Predictor type</th>
+      <th>Predictor unique values</th>
+      <th>Predictor missing values</th>
+      <th>Frequency distribution</th>
+    </tr>
+</thead>
+ <tbody>
+    <!-- Chart.js -->
+    <script src="{{ static_url('./vendors/Chart.js/dist/Chart.min.js') }}"></script>
+
+    {% for obj in predictor_detail_list %}
+        <tr>
+          <td>
+            <input type="checkbox" id="check-all" class="flat" {{ 'checked' if obj.use_predictor else '' }}/>
+            {{ 'id field' if obj.name in predictor_ids else '' }}
+          </td>
+          <td>{{ obj.name }}</td>
+          <td>
+              {% if obj.predictor_type.description %}
+                {{ obj.predictor_type.name }} - {{ obj.predictor_type.description }}
+              {% else %}
+                {{ obj.predictor_type.name }}
+              {% endif %}
+          </td>
+          <td>{{ obj.unique_values_count }}</td>
+          <td>
+              {{ '%0.2f'| format(obj.missing_values|float) }} %
+          </td>
+          <td>
+              <canvas id="freq-bar-chart-{{ obj.order }}"
+                      data-labels="{{ obj.barchart.labels|safe }}"
+                      data-list="{{ obj.barchart.data|safe }}"></canvas>
+          </td>
+        </tr>
+    {% endfor %}
+</tbody>

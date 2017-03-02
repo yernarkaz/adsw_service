@@ -1,0 +1,260 @@
+{% extends 'main.html' %}
+
+{% block head %}
+
+    <!-- Bootstrap -->
+    <link href="{{ static_url('./vendors/bootstrap/dist/css/bootstrap.min.css') }}" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="{{ static_url('./vendors/font-awesome/css/font-awesome.min.css') }}" rel="stylesheet">
+    <!-- iCheck -->
+    <link href="{{ static_url('./vendors/iCheck/skins/flat/green.css') }}" rel="stylesheet">
+    <!-- NProgress -->
+    <link href="{{ static_url('./vendors/nprogress/nprogress.css') }}" rel="stylesheet">
+    <!-- Dropzone.js -->
+    <link href="{{ static_url('./vendors/dropzone/dist/min/dropzone.min.css') }}" rel="stylesheet">
+    <!-- Select2 -->
+    <link href="{{ static_url('./vendors/select2/dist/css/select2.min.css') }}" rel="stylesheet">
+    <!-- Switchery -->
+    <link href="{{ static_url('./vendors/switchery/dist/switchery.min.css') }}" rel="stylesheet">
+
+    <!-- Custom Theme Style -->
+    <link href="{{ static_url('./build/css/custom.min.css') }}" rel="stylesheet">
+
+{% endblock %}
+
+{% block inner_content %}
+
+    <!-- Smart Wizard -->
+    <div id="wizard_horizontal" class="form_wizard wizard_horizontal">
+      <ul class="wizard_steps">
+        <li>
+          <a href="#step-1" class="{{ 'selected' if step == 1 else ('done' if 1 in steps_done else 'disabled') }}">
+            <span class="step_no">1</span>
+            <span class="step_descr">Step 1<br />
+              <small>Setup data source</small>
+            </span>
+          </a>
+        </li>
+        <li>
+          <a href="#step-2" class="{{ 'selected' if step == 2 else ('done' if 2 in steps_done else 'disabled') }}">
+            <span class="step_no">2</span>
+            <span class="step_descr">Step 2<br />
+              <small>Setup data <br />preprocessing</small>
+            </span>
+          </a>
+        </li>
+        <li>
+          <a href="#step-3" class="{{ 'selected' if step == 3 else ('done' if 3 in steps_done else 'disabled') }}">
+            <span class="step_no">3</span>
+            <span class="step_descr">Step 3<br />
+              <small>Setup model training <br />
+                  and validation</small>
+            </span>
+          </a>
+        </li>
+      </ul>
+
+      {% block wizard_content %}{% endblock %}
+      <div class="clearfix"></div>
+      <div class="actionBar">
+        <div class="msgBox">
+          <div class="content"></div>
+          <a href="#" class="close">X</a>
+        </div>
+        <div class="loader">Loading</div>
+          <a href="{{ finish_step_url }}"
+             class="buttonFinish {{ 'buttonDisabled' if not finish_step_url else ''}}
+             btn btn-default">Finish</a>
+          <a href="{{ next_step_url }}"
+             class="buttonNext {{ 'buttonDisabled' if not next_step_url else ''}}
+             btn btn-success">Next</a>
+          <a href="{{ prev_step_url }}"
+             class="buttonPrevious {{ 'buttonDisabled' if not prev_step_url else ''}}
+             btn btn-primary">Previous</a>
+        </div>
+    </div>
+    <!-- End SmartWizard Content -->
+
+{% endblock %}
+
+{% block scripts %}
+
+    <!-- jQuery -->
+    <script src="{{ static_url('./vendors/jquery/dist/jquery.min.js') }}"></script>
+    <!-- Bootstrap -->
+    <script src="{{ static_url('./vendors/bootstrap/dist/js/bootstrap.min.js') }}"></script>
+    <!-- FastClick -->
+    <script src="{{ static_url('./vendors/fastclick/lib/fastclick.js') }}"></script>
+    <!-- iCheck -->
+    <script src="{{ static_url('./vendors/iCheck/icheck.min.js') }}"></script>
+    <!-- NProgress -->
+    <script src="{{ static_url('./vendors/nprogress/nprogress.js') }}"></script>
+    <!-- Switchery -->
+    <script src="{{ static_url('./vendors/switchery/dist/switchery.min.js') }}"></script>
+    <!-- Select2 -->
+    <script src="{{ static_url('./vendors/select2/dist/js/select2.full.min.js') }}"></script>
+
+    <!-- Custom Theme Scripts -->
+    <script src="{{ static_url('./build/js/custom.min.js') }}"></script>
+
+    <script>
+        $(document).ready(function(){
+            $('#select-options-training').change(function(){
+                $.ajax({
+                  url: '{{ reverse_url('workflow-new-step1') }}',
+                  method: 'POST',
+                  data: {'datasource_id' : $(this).val()},
+                  dataType: 'json'
+                }).done(function(response){
+                });
+            });
+
+            $('#select-options-validation').change(function(){
+                $.ajax({
+                  url: '{{ reverse_url('workflow-new-step3') }}',
+                  method: 'POST',
+                  data: {
+                      'post_type': 'validation',
+                      'validation_type' : $(this).val()
+                  },
+                  dataType: 'json'
+                }).done(function(response){
+                });
+            });
+
+            $('#select-options-class').change(function(){
+                $.ajax({
+                  url: '{{ reverse_url('workflow-new-step3') }}',
+                  method: 'POST',
+                  data: {
+                      'post_type': 'class',
+                      'class_value' : $(this).val()
+                  },
+                  dataType: 'json'
+                }).done(function(response){
+                });
+            });
+
+            $('#form-group-preprocessing').find('input[type=checkbox]').each(function(){
+                $(this).on('ifChecked', function(){
+                    $.ajax({
+                      url: '{{ reverse_url('workflow-new-step2') }}',
+                      method: 'POST',
+                      data: {
+                          'checked' : true,
+                          'prep': $(this).data('prep')
+                      },
+                      dataType: 'json'
+                    }).done(function(response){
+                    });
+                });
+
+                $(this).on('ifUnchecked', function(){
+                    $.ajax({
+                      url: '{{ reverse_url('workflow-new-step2') }}',
+                      method: 'POST',
+                      data: {
+                          'checked' : false,
+                          'prep': $(this).data('prep')
+                      },
+                      dataType: 'json'
+                    }).done(function(response){
+                    });
+                });
+
+            });
+
+            $('#form-group-supervised').find('input[type=checkbox]').each(function(){
+                $(this).on('ifChecked', function(){
+                    $.ajax({
+                      url: '{{ reverse_url('workflow-new-step3') }}',
+                      method: 'POST',
+                      data: {
+                          'post_type': 'supervised',
+                          'checked' : true,
+                          'model': $(this).data('model')
+                      },
+                      dataType: 'json'
+                    }).done(function(response){
+                    });
+                });
+
+                $(this).on('ifUnchecked', function(){
+                    $.ajax({
+                      url: '{{ reverse_url('workflow-new-step3') }}',
+                      method: 'POST',
+                      data: {
+                          'post_type': 'supervised',
+                          'checked' : false,
+                          'model': $(this).data('model')
+                      },
+                      dataType: 'json'
+                    }).done(function(response){
+                    });
+                });
+
+            });
+
+            $('#form-group-unsupervised').find('input[type=checkbox]').each(function(){
+                $(this).on('ifChecked', function(){
+                    $.ajax({
+                      url: '{{ reverse_url('workflow-new-step3') }}',
+                      method: 'POST',
+                      data: {
+                          'post_type': 'unsupervised',
+                          'checked' : true,
+                          'model': $(this).data('model')
+                      },
+                      dataType: 'json'
+                    }).done(function(response){
+                    });
+                });
+
+                $(this).on('ifUnchecked', function(){
+                    $.ajax({
+                      url: '{{ reverse_url('workflow-new-step3') }}',
+                      method: 'POST',
+                      data: {
+                          'post_type': 'unsupervised',
+                          'checked' : false,
+                          'model': $(this).data('model')
+                      },
+                      dataType: 'json'
+                    }).done(function(response){
+                    });
+                });
+
+            });
+
+            $('#learning_type').on('click', function(){
+                if ($(this).children('label.active').children('input').val() == 'supervised') {
+                    $('#form-group-supervised').find('input').each(function(){
+                        $(this).iCheck('disable');
+                    });
+                    $('#form-group-ensemble').find('input').each(function(){
+                        $(this).iCheck('disable');
+                    });
+                    $('#form-group-unsupervised').find('input').each(function(){
+                        $(this).iCheck('enable');
+                    });
+                    $('#select-options-validation').prop('disabled', 'disabled');
+                    $('#select-options-class').prop('disabled', 'disabled');
+
+                } else {
+                    $('#form-group-supervised').find('input').each(function(){
+                        $(this).iCheck('enable');
+                    });
+                    $('#form-group-ensemble').find('input').each(function(){
+                        $(this).iCheck('enable');
+                    });
+                    $('#form-group-unsupervised').find('input').each(function(){
+                        $(this).iCheck('disable');
+                    });
+                    $('#select-options-validation').prop('disabled', false);
+                    $('#select-options-class').prop('disabled', false);
+                }
+            });
+        });
+    </script>
+
+{% endblock %}

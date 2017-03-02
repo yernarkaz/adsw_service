@@ -1,0 +1,13 @@
+{
+  "name": "jquery.form",
+  "_cacheHeaders": {
+    "Last-Modified": "Sun, 03 May 2015 16:16:14 GMT",
+    "Content-Length": "13901",
+    "Content-Type": "application/javascript; charset=utf-8"
+  },
+  "main": "index.js",
+  "_source": "http://malsup.github.com/jquery.form.js",
+  "_target": "*",
+  "_originalSource": "http://malsup.github.com/jquery.form.js",
+  "_direct": true
+}

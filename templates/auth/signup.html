@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+    <!-- Bootstrap -->
+    <link href="{{ static_url('./vendors/bootstrap/dist/css/bootstrap.min.css') }}" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="{{ static_url('./vendors/font-awesome/css/font-awesome.min.css') }}" rel="stylesheet">
+    <!-- NProgress -->
+    <link href="{{ static_url('./vendors/nprogress/nprogress.css') }}" rel="stylesheet">
+    <!-- Animate.css -->
+    <link href="{{ static_url('./vendors/animate.css/animate.min.css') }}" rel="stylesheet">
+
+    <!-- Custom Theme Style -->
+    <link href="{{ static_url('./build/css/custom.min.css') }}" rel="stylesheet">
+
+{% endblock %}
+
+{% block body %}
+
+    <body class="login">
+        <div>
+          <a href="{{ reverse_url('signup') }}" class="hiddenanchor" id="signup"></a>
+          <a href="{{ reverse_url('signin') }}" class="hiddenanchor" id="signin"></a>
+
+          <div class="login_wrapper">
+            <div id="register" class="animate form login_form">
+              <section class="login_content">
+                <form role="form" action="{{ reverse_url('signup') }}" method="post">
+                  <h2>Create Account</h2><br />
+                  {% with field = form.name, placeholder = 'Username' %}
+                      {% include './auth/partials/field.html' %}
+                  {% endwith %}
+                  {% with field = form.email, placeholder = 'Email address' %}
+                      {% include './auth/partials/field.html' %}
+                  {% endwith %}
+                  {% with field = form.password, placeholder = 'Password' %}
+                      {% include './auth/partials/field.html' %}
+                  {% endwith %}
+                  {% with field = form.password2, placeholder = 'Confirm password' %}
+                      {% include './auth/partials/field.html' %}
+                  {% endwith %}
+
+                  {% if form.errors %}
+                    <div class="alert alert-danger" role="alert">
+                      <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+                      <span class="sr-only">Error:</span>
+                      {{ form.errors }}
+                    </div>
+                  {% endif %}
+                  <div>
+                    <button class="btn btn-default submit">Sign in</button>
+                  </div>
+                  {{ xsrf_form_html()|safe }}
+                  <div class="clearfix"></div>
+
+                  <div class="separator">
+                    <p class="change_link">Already a member ?
+                      <a href="{{ reverse_url('signin') }}" class="to_register"> Sign in </a>
+                    </p>
+
+                    <div class="clearfix"></div>
+                  </div>
+                </form>
+              </section>
+            </div>
+          </div>
+        </div>
+  </body>
+
+{% endblock %}
