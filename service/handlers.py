@@ -721,8 +721,8 @@ class DataSourceCheckHandler(AuthHandler):
 
     @blocking
     def read_data(self, file_path, content_type):
-        sep = None
-        if content_type == 'text/csv':
+        sep = ' '
+        if content_type == 'text/csv' or content_type == 'text/plain':
             f = open(file_path)
             line = f.readline()
             for delimiter in self.delimiters:
@@ -748,33 +748,46 @@ class DataSourceCheckHandler(AuthHandler):
         order = 0
 
         for c in dataset.columns:
-            freq = {}
+            # freq = {}
             feature = dataset[c][dataset[c].notnull()]
 
-            for f in feature:
-                data_type = type(f)
-                if data_type in freq:
-                    freq[data_type] += 1
-                else:
-                    freq[data_type] = 1
+            # for f in feature:
+            #     data_type = type(f)
+            #     if data_type in freq:
+            #         freq[data_type] += 1
+            #     else:
+            #         freq[data_type] = 1
+            if len(feature) > 0:
 
-            sorted_freq = sorted(freq.items(), key=operator.itemgetter(1), reverse=True)
-            data_type = None
+                unique_count = len(feature.unique())
+                miss_values = 100. * (1. - feature.count() / samples_count)
 
-            unique_count = len(feature.unique())
-            miss_values = 100. * (1. - feature.count() / samples_count)
+                from collections import defaultdict
+                freq = defaultdict(int)
+                for val in feature:
+                    try:
+                        is_number = val.isdigit()
+                    except AttributeError:
+                        is_number = np.isfinite(val)
 
-            if len(sorted_freq) > 0:
-                freq_data_type = sorted_freq[0][0]
+                    if is_number:
+                        freq['numeric'] += 1
+                    else:
+                        freq['nominal'] += 1
 
-                if freq_data_type in [int, float, np.int32, np.float32, np.int64, np.float64]:
+                # sorted_freq = sorted(freq.items(), key=operator.itemgetter(1), reverse=True)
+                # data_type = None
+
+                # freq_data_type = sorted_freq[0][0]
+
+                if freq['numeric'] > freq['nominal']:
                     numeric_predictors_count += 1
                     is_discrete = unique_count / samples_count < .005
                     data_type = {
                         'name': 'numeric',
                         'description': 'discrete' if is_discrete else 'continuous'
                     }
-                elif freq_data_type == str:
+                else:
                     nominal_predictors_count += 1
                     data_type = {
                         'name': 'nominal'
