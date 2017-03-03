@@ -48,7 +48,7 @@ mongo_settings = {
     'port': 27017,
     'db_name': 'adsw_app',
     'reconnect_tries': 5,
-    'reconnect_timeout': 2  # number of seconds
+    'reconnect_timeout': 2  # number of seconds,
 }
 
 # see PEP 391 and logconfig for formatting help.
