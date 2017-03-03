@@ -64,7 +64,7 @@ class MDLP_Discretizer(object):
         self.all_features_accepted_cutpoints()
         # discretize self._data
         self.dataset = None
-        self.apply_cutpoints(out_data_path=out_path_data, out_bins_path=out_path_bins)
+        self.apply_cutpoints()
 
     def MDLPC_criterion(self, data, feature, cut_point):
         '''
@@ -231,7 +231,7 @@ class MDLP_Discretizer(object):
         for feature, cuts in results:
             self._cuts[feature] = cuts
 
-    def apply_cutpoints(self, out_data_path=None, out_bins_path=None):
+    def apply_cutpoints(self):
         '''
         Discretizes data by applying bins according to self._cuts. Saves a new, discretized file, and a description of
         the bins
