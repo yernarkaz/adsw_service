@@ -446,7 +446,7 @@ class DataFinishFormHandler(BaseFormHandler):
             if len(continuous_predictors) > 0:
                 from service.vendors.MDLP import MDLP_Discretizer
                 features = list(continuous_predictors)
-                discretizer = MDLP_Discretizer(dataset[features], y)
+                discretizer = MDLP_Discretizer(dataset[features], y, features)
                 dataset = dataset.drop(features, axis=1)
                 dataset = pd.concat([dataset, discretizer.dataset], axis=1)
                 print(dataset.head())

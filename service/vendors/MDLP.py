@@ -10,7 +10,7 @@ from joblib import Parallel, delayed
 
 
 class MDLP_Discretizer(object):
-    def __init__(self, X, y, out_path_data=None, out_path_bins=None, features=None):
+    def __init__(self, X, y, features=None):
         '''
         initializes discretizer object:
             saves raw copy of data and creates self._data with only features to discretize and class
@@ -26,10 +26,10 @@ class MDLP_Discretizer(object):
         :return:
         '''
 
-        if not isinstance(X, pd.core.frame.DataFrame):  # class needs a pandas dataframe
-            raise AttributeError('input dataset should be a pandas data frame')
+        # if not isinstance(X, pd.core.frame.DataFrame):  # class needs a pandas dataframe
+        #     raise AttributeError('input dataset should be a pandas data frame')
 
-        self._features = X.columns
+        self._features = features
         self._data = pd.concat([X, y], axis=1)
         # self._data_raw = dataset  # copy or original input data
 

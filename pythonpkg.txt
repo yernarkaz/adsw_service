@@ -6,6 +6,11 @@ schematics
 django
 wtforms
 wtforms-tornado
+pandas
+matplotlib
+seaborn
+xgboost
+keras
 
 
 
