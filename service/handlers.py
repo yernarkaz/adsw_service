@@ -334,6 +334,7 @@ class DataFinishFormHandler(BaseFormHandler):
 
         workflow.state = 'processing'
         workflow.name = datasource.file_name
+        workflow.processing_started_at = datetime.datetime.now()
         result = await workflow.update(self.db, query={'_id': workflow_id})
         print(result)
 
@@ -341,7 +342,7 @@ class DataFinishFormHandler(BaseFormHandler):
 
         dataset = await self.process_workflow(workflow, datasource, self.process_workflow_finished)
         if dataset is not None:
-            workflow.processing_started_at = datetime.datetime.now()
+
             await workflow.update(self.db, query={'_id': str(workflow._id)})
 
             if len(workflow.preprocessing) > 0:
