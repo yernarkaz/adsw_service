@@ -17,6 +17,7 @@ import numpy as np
 import operator
 
 import pickle
+import datetime
 
 l = logging.getLogger(__name__)
 
@@ -40,13 +41,13 @@ class DashboardHandler(ListHandler):
     async def update_context(self):
         await super().update_context()
 
-        cursor = DataSourceModel.get_cursor(self.db, {'state': 'finished'}, **{})
+        cursor = WorkflowModel.get_cursor(self.db, query={'state': 'processed'}, **{})
         workflow_list = await WorkflowModel.find(cursor)
 
-        cursor = DataSourceModel.get_cursor(self.db, {'state': 'new'}, **{})
+        cursor = WorkflowModel.get_cursor(self.db, query={'state': 'new'}, **{})
         new_workflow_list = await WorkflowModel.find(cursor)
 
-        cursor = DataSourceModel.get_cursor(self.db, {'state': 'processing'}, **{})
+        cursor = WorkflowModel.get_cursor(self.db, query={'state': 'processing'}, **{})
         processing_workflow_list = await WorkflowModel.find(cursor)
 
         cursor = DataSourceModel.get_cursor(self.db, {}, **{})
@@ -69,7 +70,7 @@ class WorkflowsHandler(ListHandler):
 
     @property
     def get_query(self):
-        return {'is_finished': True}
+        return {'$or': [{'state': 'processed'}, {'state': 'processing'}]}
 
 
 class WorkflowDetailHandler(DetailHandler):
@@ -80,7 +81,7 @@ class WorkflowDetailHandler(DetailHandler):
 
     async def update_context(self):
         await super().update_context()
-        self.add_additional_context({'content_title': 'workflow : {}'.format(self.obj._id)})
+        self.add_additional_context({'content_title': self.obj.name})
 
 
 class DataSourcesHandler(ListHandler):
@@ -150,7 +151,9 @@ class DataSourceSelectHandler(BaseFormHandler):
                 await workflow.insert(self.db)
             self.session_set('curr_workflow_id', str(workflow._id))
         else:
-            workflow = await WorkflowModel.find_one(self.db, {'_id': self.session_get('curr_workflow_id')})
+            workflow = await WorkflowModel.find_one(
+                self.db,
+                {'_id': self.session_get('curr_workflow_id'), 'state': 'new'})
             if not workflow:
                 workflow = WorkflowModel({'_id': uuid.uuid4()})
                 await workflow.insert(self.db)
@@ -270,8 +273,8 @@ class DataModelFormHandler(BaseFormHandler):
             val_type = validation_type_split[0]
             val = validation_type_split[1]
 
-            if val_type == 'file':
-                val = uuid.UUID(val)
+            # if val_type == 'file':
+            #     val = uuid.UUID(val)
 
             workflow.validation = {'type': val_type, 'value': val}
         elif post_type == 'class':
@@ -286,9 +289,11 @@ class DataModelFormHandler(BaseFormHandler):
             model_processing = workflow.model_processing
 
             if model_processing.get('type') == post_type:
-                models = set(model_processing.get('models', None))
+                models = model_processing.get('models', None)
                 if not models:
                     models = set()
+                else:
+                    models = set(models)
 
                 if checked:
                     models.add(model)
@@ -321,16 +326,63 @@ class DataFinishFormHandler(BaseFormHandler):
 
     @web.authenticated
     async def get(self, *args, **kwargs):
-        workflow_id = self.session_get('curr_workflow_id')
-        workflow = await self.model.find_one(self.db, {'_id': workflow_id})
-        datasource = await DataSourceModel.find_one(self.db, {'_id': str(workflow.training_data['_id'])})
-
         self.redirect(self.reverse_url('workflows'))
 
-        await self.process_workflow(workflow, datasource)
+        workflow_id = self.session_get('curr_workflow_id')
+        workflow = await self.model.find_one(self.db, {'_id': workflow_id})
+        workflow.state = 'processing'
+        result = await workflow.update(self.db, query={'_id': workflow_id})
+
+        datasource_id = str(workflow.training_data['_id'])
+        datasource = await DataSourceModel.find_one(self.db, {'_id': datasource_id})
+
+        dataset = await self.process_workflow(workflow, datasource, self.process_workflow_finished)
+        if dataset is not None:
+            workflow.processing_started_at = datetime.datetime.now()
+            await workflow.update(self.db, query={'_id': str(workflow._id)})
+
+            if len(workflow.preprocessing) > 0:
+                print('=== dataset shape before preprocessing', dataset.columns, dataset.shape)
+                dataset, y = await self.preprocess_data(workflow, datasource, dataset)
+
+                print('=== dataset shape after preprocessing', dataset.columns, dataset.shape)
+                trained_models, model_processing_type, model_processing_detail \
+                    = await self.train_models(workflow, datasource, dataset, y)
+                result = await workflow.update(self.db, query={'_id': workflow_id})
+                print(result)
+
+                workflow = await self.validate_models(workflow, trained_models, y,
+                                                      model_processing_type, model_processing_detail)
+
+                workflow_name = datasource.file_name
+                if model_processing_type == 'supervised':
+                    if 'binary' in model_processing_detail:
+                        workflow_name += ': binary classification task'
+                    elif 'multi' in model_processing_detail:
+                        workflow_name += ': multilabel classification task'
+                    else:
+                        workflow_name += ': regression task'
+                else:
+                    workflow_name += ': unsupervised learning'
+                workflow.name = workflow_name
+
+                result = await workflow.update(self.db, query={'_id': workflow_id})
+                print(result)
+                await self.process_workflow_finished(workflow)
+            else:
+                pass
+                # self.train_validate(workflow, datasource, dataset, y)
+        else:
+            raise Exception()
+
+    async def process_workflow_finished(self, workflow):
+        print('process workflow has finished')
+        workflow.state = 'processed'
+        workflow.processing_ended_at = datetime.datetime.now()
+        await workflow.update(self.db, query={'_id': str(workflow._id)})
 
     @blocking
-    def process_workflow(self, workflow, datasource):
+    def process_workflow(self, workflow, datasource, callback):
         print('=== start processing workflow ===')
 
         processing_type = workflow.model_processing.get('type')
@@ -344,7 +396,7 @@ class DataFinishFormHandler(BaseFormHandler):
             if datasource.predictor_target_name:
                 usecols = [datasource.predictor_target_name]
 
-        if datasource.content_type == 'text/csv':
+        if datasource.content_type == 'text/csv' or datasource.content_type == 'text/plain':
             series = pd.read_csv(datasource.file_path, sep=datasource.file_sep, usecols=usecols)
         elif datasource.content_type == 'text/json':
             pass
@@ -371,24 +423,14 @@ class DataFinishFormHandler(BaseFormHandler):
                 skiprows = np.sort(skiprows)
                 skiprows = np.delete(skiprows, 0)
 
-        if datasource.content_type == 'text/csv':
+        if datasource.content_type == 'text/csv' or datasource.content_type == 'text/plain':
             dataset = pd.read_csv(datasource.file_path,
                                   sep=datasource.file_sep,
                                   skiprows=skiprows)
         elif datasource.content_type == 'text/json':
             pass
 
-        if dataset is not None:
-            if len(workflow.preprocessing) > 0:
-                print('=== dataset shape before preprocessing', dataset.columns, dataset.shape)
-                dataset, y = self.preprocess_data(workflow, datasource, dataset)
-                print('=== dataset shape after preprocessing', dataset.columns, dataset.shape)
-                # self.train_validate(workflow, datasource, dataset, y)
-            else:
-                pass
-                # self.train_validate(workflow, datasource, dataset, y)
-        else:
-            raise Exception()
+        return dataset
 
     def filter_predictors(self, datasource, feature_type):
         predictors = set()
@@ -405,6 +447,7 @@ class DataFinishFormHandler(BaseFormHandler):
 
         return predictors
 
+    @blocking
     def preprocess_data(self, workflow, datasource, dataset):
         print('=== start preprocessing data', workflow.preprocessing)
 
@@ -421,7 +464,7 @@ class DataFinishFormHandler(BaseFormHandler):
 
         processing_type = workflow.model_processing.get('type')
 
-        if 'miss_val' in workflow.preprocessing and datasource.missing_values > 0.:
+        if datasource.missing_values > 0.:
             missing_predictors = self.filter_predictors(datasource, 'missing')
             print('=== missing predictors : ', missing_predictors)
 
@@ -503,89 +546,267 @@ class DataFinishFormHandler(BaseFormHandler):
         dataset.to_csv(datasource.file_path + '_preprocessed', index=False)
         return dataset, y
 
-    def train_validate(self, workflow, datasource, dataset, y=None):
-        trained_models = set()
-        validated_models = dict()
+    @blocking
+    def train_models(self, workflow, datasource, dataset, y=None, test_dataset=None):
+
+        print('start training models')
+
+        trained_models = dict()
         model_processing_type = workflow.model_processing.get('type')
         processing_models = workflow.model_processing.get('models')
+        validation_type = workflow.validation.get('type')
+        validation_value = workflow.validation.get('value')
+
+        print(model_processing_type, processing_models, validation_type, validation_value)
+
         if model_processing_type == 'supervised':
 
             y_predictor = None
-            model_processing_detail = None
 
             for p in datasource.predictor_details:
-                if p.get('name') == dataset.preditor_target_name:
+                if p.get('name') == datasource.predictor_target_name:
                     y_predictor = p
                     break
 
-            if p.get('predictor_type').get('description', None) == 'continuous':
+            if y_predictor.get('predictor_type').get('description', None) == 'continuous':
                 model_processing_detail = 'regression'
             else:
-                model_processing_detail = 'classification'
+                y_value_counts = y.value_counts()
+                if len(y_value_counts) > 2:
+                    model_processing_detail = 'classification_multi'
+                else:
+                    model_processing_detail = 'classification_binary'
 
-            if 'rlist' in processing_models and model_processing_detail == 'classification':
+            print(model_processing_detail)
+
+            from sklearn.preprocessing import LabelEncoder
+            le = LabelEncoder()
+            y_encoded = le.fit_transform(y)
+
+            if validation_type == 'fold':
+                from sklearn.model_selection import cross_val_predict
+                from sklearn.model_selection import StratifiedKFold
+                skf = StratifiedKFold(n_splits=validation_value)
+
+            if 'rlist' in processing_models and 'classification' in model_processing_detail:
                 pass
 
             if 'xgb' in processing_models:
-                import xgboost as xgb
-                # xgb_params = {
-                #     'seed': 0,
-                #     'colsample_bytree': 0.8,
-                #     'silent': 1,
-                #     'subsample': 0.8,
-                #     'learning_rate': 0.1,
-                #     'objective': 'multi:softmax',
-                #     'max_depth': 7,
-                #     'num_parallel_tree': 1,
-                #     'min_child_weight': 2,
-                #     'num_class': len(le.classes_),
-                #     'eval_metric': 'mlogloss'
-                # }
-                #
-                # dtrain = xgb.DMatrix(train, label=y_train)
-                # dtest = xgb.DMatrix(test, label=y_test)
-                #
-                # evals = [(dtrain, 'train'), (dtest, 'test')]
-                # xgb_model = xgb.cv(xgb_params, dtrain, num_boost_round=10, nfold=5, seed=0,
-                #              stratified=True, early_stopping_rounds=1,
-                #              verbose_eval=True, show_stdv=True)
-                # booster = xgb.train(xgb_params, dtrain, evals=evals,
-                #                     num_boost_round=10, early_stopping_rounds=1,
-                #                     verbose_eval=True)
+
+                objective = 'binary:logistic' \
+                if 'binary' in model_processing_detail else 'multi:softprob'
+                n_estimators = 20
+                silent = 1
+                subsample = .7
+                colsample_bytree = .7
+                learning_rate = .1
+                max_depth = 7
+                min_child_weight = 2
+
+                if 'classification' in model_processing_detail:
+                    from xgboost import XGBClassifier
+                    xgb = XGBClassifier(
+                        n_estimators=n_estimators,
+                        objective=objective,
+                        silent=silent,
+                        subsample=subsample,
+                        colsample_bytree=colsample_bytree,
+                        learning_rate=learning_rate,
+                        max_depth=max_depth,
+                        min_child_weight=min_child_weight
+                    )
+                else:
+                    from xgboost import XGBRegressor
+                    xgb = XGBRegressor(
+                        n_estimators=n_estimators,
+                        objective=objective,
+                        silent=silent,
+                        subsample=subsample,
+                        colsample_bytree=colsample_bytree,
+                        learning_rate=learning_rate,
+                        max_depth=max_depth,
+                        min_child_weight=min_child_weight
+                    )
+
+                if validation_type == 'fold':
+                    y_pred = cross_val_predict(xgb, dataset.values, y_encoded,
+                                               cv=skf, n_jobs=-1, verbose=9)
+                    xgb.fit(dataset.values, y_encoded)
+                    from settings import location
+                    import xgbfir
+                    workflow.fi_booster = location('workflow_data') + '/' + str(workflow._id) + '_fi.xlsx'
+                    print('save xgbfi', xgb._Booster, workflow.fi_booster)
+                    xgbfir.saveXgbFI(xgb._Booster, OutputXlsxFile=workflow.fi_booster)
+                else:
+                    pass
+                    # knn.fit(X, y)
+                    # y_pred = knn.predict(test_dataset.values) \
+                    #     if 'binary' in model_processing_detail \
+                    #     else knn.predict_proba(test_dataset.values)
+
+                trained_models['xgb'] = y_pred
 
             if 'frlp' in processing_models:
                 pass
 
             if 'knn' in processing_models:
-                if model_processing_detail == 'classification':
+                if 'classification' in model_processing_detail:
                     from sklearn.neighbors import KNeighborsClassifier
-                    knn = KNeighborsClassifier(n_neighbors=3)
+                    knn = KNeighborsClassifier(n_neighbors=5, algorithm='auto', n_jobs=-1)
                 else:
                     from sklearn.neighbors import KNeighborsRegressor
-                    knn = KNeighborsRegressor(n_neighbors=2)
-                # knn.fit(X, y)
+                    knn = KNeighborsRegressor(n_neighbors=5, algorithm='auto', n_jobs=-1)
+
+                from sklearn import preprocessing
+                X = preprocessing.scale(dataset)
+
+                if validation_type == 'fold':
+                    y_pred = cross_val_predict(knn, X, y_encoded,
+                                               cv=skf, n_jobs=-1, verbose=9)
+                else:
+                    pass
+                    # knn.fit(X, y)
+                    # y_pred = knn.predict(test_dataset.values) \
+                    #     if 'binary' in model_processing_detail \
+                    #     else knn.predict_proba(test_dataset.values)
+
+                trained_models['knn'] = y_pred
+                del X
 
             if 'lr' in processing_models:
-                from sklearn.linear_model import LogisticRegression
-                lr = LogisticRegression()
+                '''
+                solver : {‘newton-cg’, ‘lbfgs’, ‘liblinear’, ‘sag’}
+
+                Algorithm to use in the optimization problem.
+                For small datasets, ‘liblinear’ is a good choice, whereas ‘sag’ is
+                faster for large ones.
+
+                For multiclass problems, only ‘newton-cg’, ‘sag’ and ‘lbfgs’ handle
+                multinomial loss; ‘liblinear’ is limited to one-versus-rest schemes.
+                ‘newton-cg’, ‘lbfgs’ and ‘sag’ only handle L2 penalty.
+
+                ‘liblinear’ might be slower in LogisticRegressionCV because it does
+                not handle warm-starting.
+
+                Note that ‘sag’ fast convergence is only guaranteed on features with approximately the same scale.
+                You can preprocess the data with a scaler from sklearn.preprocessing.
+                New in version 0.17: Stochastic Average Gradient descent solver.
+                '''
+
+                if 'classification' in model_processing_detail:
+
+                    multi_class = 'ovr' if 'binary' in model_processing_detail else 'multinomial'
+                    if dataset.shape[0] <= 1000:
+                        if multi_class == 'ovr':
+                            solver = 'liblinear'
+                        else:
+                            solver = 'lbfgs'
+                    elif dataset.shape[0] >= 10000:
+                        solver = 'sag'
+                    else:
+                        solver = 'lbfgs'
+
+                    class_weight = 'balanced'
+                    n_jobs = -1
+
+                    from sklearn.linear_model import LogisticRegression
+                    lr = LogisticRegression(
+                        solver=solver,
+                        class_weight=class_weight,
+                        n_jobs=n_jobs,
+                        multi_class=multi_class
+                    )
+
+                    from sklearn import preprocessing
+                    X = preprocessing.scale(dataset)
+
+                    if validation_type == 'fold':
+                        y_pred = cross_val_predict(lr, X, y_encoded,
+                                                   cv=skf, n_jobs=-1, verbose=9)
+                    else:
+                        pass
+                        # lr.fit(X, y)
+                        # y_pred = lr.predict(test_dataset.values) \
+                        # if multi_class == 'ovr' else lr.predict_proba(test_dataset.values)
+
+                    trained_models['lr'] = y_pred
+                    del X
+                else:
+                    pass
 
             if 'nn' in processing_models:
-                if model_processing_detail == 'classification':
+                '''
+                solver : {‘lbfgs’, ‘sgd’, ‘adam’}, default ‘adam’
+                The solver for weight optimization.
+                ‘lbfgs’ is an optimizer in the family of quasi-Newton methods.
+                ‘sgd’ refers to stochastic gradient descent.
+                ‘adam’ refers to a stochastic gradient-based optimizer proposed by Kingma, Diederik, and Jimmy Ba
+                Note: The default solver ‘adam’ works pretty well on relatively large datasets
+                (with thousands of training samples or more) in terms of both training time and validation score.
+                For small datasets, however, ‘lbfgs’ can converge faster and perform better.
+                '''
+                solver = None
+                if dataset.shape[0] >= 1000.:
+                    solver = 'adam'
+                else:
+                    solver = 'lbfgs'
+
+                if 'classification' in model_processing_detail:
                     from sklearn.neural_network import MLPClassifier
-                    nn = MLPClassifier()
+                    nn = MLPClassifier(solver=solver, hidden_layer_sizes=(50, 3))
                 else:
                     from sklearn.neural_network import MLPRegressor
-                    nn = MLPRegressor()
-                # nn.fit(X, y)
+                    nn = MLPRegressor(solver=solver, hidden_layer_sizes=(50, 3))
+
+                from sklearn import preprocessing
+                X = preprocessing.scale(dataset)
+
+                if validation_type == 'fold':
+                    y_pred = cross_val_predict(nn, X, y_encoded,
+                                               cv=skf, n_jobs=-1, verbose=9)
+                else:
+                    pass
+                    # nn.fit(X, y)
+                    # y_pred = nn.predict(test_dataset.values) \
+                    #     if 'binary' in model_processing_detail \
+                    #     else nn.predict_proba(test_dataset.values)
+
+                trained_models['nn'] = y_pred
+                del X
 
             if 'rf' in processing_models:
-                if model_processing_detail == 'classification':
+
+                n_estimators = 50
+                n_jobs = -1
+                max_depth = 7
+
+                if 'classification' in model_processing_detail:
                     from sklearn.ensemble import RandomForestClassifier
-                    rf = RandomForestClassifier()
+                    rf = RandomForestClassifier(
+                        n_estimators=n_estimators,
+                        max_depth=max_depth,
+                        class_weight='balanced',
+                        n_jobs=n_jobs
+                    )
                 else:
                     from sklearn.ensemble import RandomForestRegressor
-                    rf = RandomForestRegressor()
-                # rf.fit(X, y)
+                    rf = RandomForestRegressor(
+                        n_estimators=n_estimators,
+                        max_depth=max_depth,
+                        n_jobs=n_jobs
+                    )
+
+                if validation_type == 'fold':
+                    y_pred = cross_val_predict(rf, dataset.values, y_encoded,
+                                               cv=skf, n_jobs=-1, verbose=9)
+                else:
+                    pass
+                    # rf.fit(X, y)
+                    # y_pred = rf.predict(test_dataset.values) \
+                    #     if 'binary' in model_processing_detail \
+                    #     else rf.predict_proba(test_dataset.values)
+
+                trained_models['rf'] = y_pred
         else:
             if 'gm' in processing_models:
                 from sklearn.mixture import GaussianMixture
@@ -612,7 +833,39 @@ class DataFinishFormHandler(BaseFormHandler):
                 rbm = BernoulliRBM()
                 # rbm.fit(X)
 
-        return trained_models
+        return trained_models, model_processing_type, model_processing_detail
+
+    @blocking
+    def validate_models(self, workflow, trained_models, y, model_processing_type, model_processing_detail):
+        print('validate models', trained_models)
+        validation_details = workflow.validation_details
+        if model_processing_type == 'supervised':
+
+            from sklearn.preprocessing import LabelEncoder
+            le = LabelEncoder()
+            le.fit(y)
+            y_true = le.transform(y)
+
+            from sklearn.metrics import accuracy_score, roc_auc_score, log_loss, classification_report
+
+            for model, y_pred in trained_models.items():
+                validation_details[model] = {}
+                print(model, y_pred, len(y_true), le.classes_)
+                # if 'multi' in model_processing_detail:
+                #     validation_details[model]['logloss'] = log_loss(y, le.inverse_transform(y_pred), labels=le.classes_)
+
+                if 'binary' in model_processing_detail:
+                    validation_details[model]['roc_auc_score'] = roc_auc_score(y_true, y_pred)
+
+                validation_details[model]['acc_score'] = accuracy_score(y_true, y_pred)
+                validation_details[model]['classification_report'] = classification_report(
+                    y_true, y_pred, target_names=le.classes_)
+
+            workflow.validation_details = validation_details
+        else:
+            pass
+
+        return workflow
 
     def models_ensembling(self):
         pass

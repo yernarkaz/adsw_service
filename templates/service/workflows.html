@@ -24,17 +24,16 @@
       <div class="clearfix"></div>
     </div>
     <div class="x_content">
-    <div class="list-group">
-        {% if object_list %}
-            {% for object in object_list %}
-              <a href="{{ reverse_url('workflow-detail', object._id) }}" class="list-group-item">
-                  workflow item : {{ object._id }}
-              </a>
-            {% endfor %}
-        {% else %}
-            <span>You haven't created any workflow yet</span><br />
-        {% endif %}
-        </div>
+        <!-- DataTables -->
+        <table id="datatable" class="table table-striped table-bordered">
+            {% if object_list %}
+                {% include 'service/workflow-list.html' %}
+            {% else %}
+                <p class="text-muted font-13 m-b-30">
+                    You haven't uploaded any dataset yet
+                </p>
+            {% endif %}
+        </table>
     </div>
 
 {% endblock %}

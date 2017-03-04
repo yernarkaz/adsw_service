@@ -1,0 +1,25 @@
+<thead>
+    <tr>
+      <th>Name</th>
+      <th>Processing started at</th>
+      <th>Processing ended at</th>
+    </tr>
+</thead>
+ <tbody>
+    {% for obj in object_list %}
+        <tr>
+          <td>
+            <a href="{{ reverse_url('workflow-detail', obj._id) }}">
+                {{ obj.name }}
+            </a>
+            {% if obj.state == 'processing' %}
+                <span class="label label-info">Processing...</span>
+            {% else %}
+                <span class="label label-success">Ready</span>
+            {% endif %}
+          </td>
+          <td>{{ obj.processing_started_at }}</td>
+          <td>{{ obj.processing_ended_at }}</td>
+        </tr>
+    {% endfor %}
+</tbody>

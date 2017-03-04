@@ -113,12 +113,15 @@ class WorkflowModel(BaseModel):
     created_at = DateTimeType(default=datetime.datetime.now())
     processing_started_at = DateTimeType()
     processing_ended_at = DateTimeType()
-    processing_completed = BooleanType(default=False)
 
     training_data = DictType(BaseType, {})
     preprocessing = ListType(StringType, default=list())
     model_processing = DictType(BaseType, default={'type': 'supervised'})
-    validation = DictType(BaseType, default={})
+    validation = DictType(BaseType, default={'type': 'fold', 'value': 3})
+    trained_models = DictType(BaseType, {})
+    fi_booster = StringType()
+
+    validation_details = DictType(BaseType, default={})
 
     state = StringType(default='new')
 

@@ -119,7 +119,6 @@
             <div class="col-md-9 col-sm-9 col-xs-12">
                 <select class="select2_single form-control" tabindex="-1" id="select-options-validation"
                 {{ 'disabled' if workflow.model_processing.type == 'unsupervised' else '' }}>>
-                    <option>select validation type or test dataset</option>
                     <option value="fold_3"
                     {{ 'selected="selected"' if workflow.validation.value == '3' else '' }}>
                         3-fold</option>

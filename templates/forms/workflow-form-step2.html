@@ -19,13 +19,6 @@
                   </div>
                   <div class="checkbox">
                     <label>
-                      <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-prep="miss_val"
-                      {{ 'checked' if 'miss_val' in workflow.preprocessing else '' }}>
-                      Handle missing values
-                    </label>
-                  </div>
-                  <div class="checkbox">
-                    <label>
                       <input type="checkbox" class="flat" style="position: absolute; opacity: 0;" data-prep="onehot"
                       {{ 'checked' if 'onehot' in workflow.preprocessing else '' }}>
                       Use one hot encoding for nominal(categorical) features
