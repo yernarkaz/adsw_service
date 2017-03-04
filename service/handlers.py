@@ -326,15 +326,18 @@ class DataFinishFormHandler(BaseFormHandler):
 
     @web.authenticated
     async def get(self, *args, **kwargs):
-        self.redirect(self.reverse_url('workflows'))
-
         workflow_id = self.session_get('curr_workflow_id')
         workflow = await self.model.find_one(self.db, {'_id': workflow_id})
-        workflow.state = 'processing'
-        result = await workflow.update(self.db, query={'_id': workflow_id})
 
         datasource_id = str(workflow.training_data['_id'])
         datasource = await DataSourceModel.find_one(self.db, {'_id': datasource_id})
+
+        workflow.state = 'processing'
+        workflow.name = datasource.file_name
+        result = await workflow.update(self.db, query={'_id': workflow_id})
+        print(result)
+
+        self.redirect(self.reverse_url('workflows'))
 
         dataset = await self.process_workflow(workflow, datasource, self.process_workflow_finished)
         if dataset is not None:
