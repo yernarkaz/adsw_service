@@ -1,0 +1,34 @@
+
+<h3>{{ key }}</h3>
+<div class="sidebar-widget">
+    <h4>Accuracy score: {{ value.acc_score }}</h4>
+{#    <canvas width="300" height="160" id="chart_gauge_01" class="" style="width: 150px; height: 80px;"></canvas>#}
+{#    <div class="goal-wrapper">#}
+{#      <span id="gauge-text" class="gauge-value pull-left">3,200</span>#}
+{#      <span class="gauge-value pull-left">%</span>#}
+{#      <span id="goal-text" class="goal-value pull-right">100%</span>#}
+{#    </div>#}
+</div>
+<div>
+    {{ value.classification_report }}
+</div>
+{#<!-- DataTables -->#}
+{#<table id="datatable" class="table table-striped table-bordered">#}
+{#    <thead>#}
+{#        <tr>#}
+{#          <th>Target label</th>#}
+{#          <th>Precision</th>#}
+{#          <th>Recall</th>#}
+{#          <th>F1-score</th>#}
+{#        </tr>#}
+{#    </thead>#}
+{#    <tbody>#}
+{#        {% for item in value.classification_report %}#}
+{#        <tr>#}
+{#           <td>{{ item.precision }}</td>#}
+{#            <td>{{ item.recall }}</td>#}
+{#            <td>{{ item.f1score }}</td>#}
+{#        </tr>#}
+{#        {% endfor %}#}
+{#    </tbody>#}
+{#</table>#}

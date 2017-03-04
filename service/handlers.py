@@ -858,6 +858,22 @@ class DataFinishFormHandler(BaseFormHandler):
                     validation_details[model]['roc_auc_score'] = roc_auc_score(y_true, y_pred)
 
                 validation_details[model]['acc_score'] = accuracy_score(y_true, y_pred)
+                # report = classification_report(
+                #     y_true, y_pred, target_names=le.classes_)
+                # report_list = []
+                # splits = report.strip().split('\n')
+                # for item in splits:
+                #     if len(item) > 0:
+                #         split_items = item.strip().split(' ')
+                #         for item_ in split_items:
+                #             if len(item) == 0:
+                #                 split_items.remove(item_)
+                #
+                #         report_list.append({
+                #             'precision': split_items[0],
+                #             'recall': split_items[1],
+                #             'f1score': split_items[2]
+                #         })
                 validation_details[model]['classification_report'] = classification_report(
                     y_true, y_pred, target_names=le.classes_)
 

@@ -17,7 +17,23 @@
 
 {% block inner_content%}
 
-    <h3>TODO: visualization and report</h3>
+    <div class="x_title">
+      <div class="clearfix"></div>
+    </div>
+    <div class="x_content">
+        {% if object and object.state == 'processed' %}
+            {% for key in object.validation_details %}
+                {% with value = object.validation_details[key] %}
+                    {{ value.classification_report }}
+                    {% include 'service/workflow-detail-list.html' %}
+                {% endwith %}
+            {% endfor %}
+        {% else %}
+            <p class="text-muted font-13 m-b-30">
+                Currently the workflow is processing
+            </p>
+        {% endif %}
+    </div>
 
 {% endblock %}
 
